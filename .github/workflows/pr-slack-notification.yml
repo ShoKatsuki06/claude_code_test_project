@@ -9,17 +9,41 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Send Slack Notification
-        uses: 8398a7/action-slack@v3
+      - name: Prepare notification message
+        id: prepare
+        run: |
+          # Set action type message
+          if [ "${{ github.event.action }}" = "opened" ]; then
+            echo "action_msg=🔔 新しいプルリクエストが作成されました" >> $GITHUB_OUTPUT
+            echo "action_color=good" >> $GITHUB_OUTPUT
+          else
+            echo "action_msg=📝 プルリクエストが更新されました" >> $GITHUB_OUTPUT  
+            echo "action_color=warning" >> $GITHUB_OUTPUT
+          fi
+          
+          # Prepare description (truncate if too long and escape special characters)
+          description="${{ github.event.pull_request.body }}"
+          if [ -z "$description" ]; then
+            description="説明なし"
+          else
+            # Truncate to 200 characters and remove line breaks
+            description=$(echo "$description" | tr '\n' ' ' | tr '\r' ' ' | cut -c1-200)
+            if [ ${#description} -eq 200 ]; then
+              description="${description}..."
+            fi
+          fi
+          echo "description=$description" >> $GITHUB_OUTPUT
+
+      - name: Send Slack notification
+        uses: slackapi/slack-github-action@v1.27.0
         with:
-          status: custom
-          custom_payload: |
+          payload: |
             {
               "channel": "#claude_code_notification",
               "attachments": [
                 {
-                  "color": "${{ github.event.action == 'opened' && 'good' || 'warning' }}",
-                  "title": "${{ github.event.action == 'opened' && '🔔 新しいプルリクエストが作成されました' || '📝 プルリクエストが更新されました' }}",
+                  "color": "${{ steps.prepare.outputs.action_color }}",
+                  "title": "${{ steps.prepare.outputs.action_msg }}",
                   "title_link": "${{ github.event.pull_request.html_url }}",
                   "fields": [
                     {
@@ -33,27 +57,25 @@ jobs:
                       "short": true
                     },
                     {
-                      "title": "プルリクエストタイトル",
+                      "title": "プルリクエスト",
                       "value": "${{ github.event.pull_request.title }}",
                       "short": false
                     },
                     {
-                      "title": "説明",
-                      "value": "${{ github.event.pull_request.body && github.event.pull_request.body || 'なし' }}",
+                      "title": "ブランチ",
+                      "value": "${{ github.event.pull_request.head.ref }} → ${{ github.event.pull_request.base.ref }}",
                       "short": false
                     },
                     {
-                      "title": "ブランチ",
-                      "value": "`${{ github.event.pull_request.head.ref }}` → `${{ github.event.pull_request.base.ref }}`",
+                      "title": "説明",
+                      "value": "${{ steps.prepare.outputs.description }}",
                       "short": false
                     }
                   ],
                   "footer": "GitHub Actions",
-                  "footer_icon": "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png",
                   "ts": "${{ github.event.pull_request.created_at }}"
                 }
               ]
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        if: always()
