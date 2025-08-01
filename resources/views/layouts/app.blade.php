@@ -26,6 +26,9 @@
                 <a href="{{ route('about') }}" class="inline-block px-5 py-1.5 dark:text-[#EDEDEC] text-[#1b1b18] border {{ request()->routeIs('about') ? 'border-[#19140035] hover:border-[#1915014a] dark:border-[#3E3E3A] dark:hover:border-[#62605b]' : 'border-transparent hover:border-[#19140035] dark:hover:border-[#3E3E3A]' }} rounded-sm text-sm leading-normal">
                     About
                 </a>
+                <a href="{{ route('services') }}" class="inline-block px-5 py-1.5 dark:text-[#EDEDEC] text-[#1b1b18] border {{ request()->routeIs('services') ? 'border-[#19140035] hover:border-[#1915014a] dark:border-[#3E3E3A] dark:hover:border-[#62605b]' : 'border-transparent hover:border-[#19140035] dark:hover:border-[#3E3E3A]' }} rounded-sm text-sm leading-normal">
+                    Services
+                </a>
                 <a href="{{ route('contact') }}" class="inline-block px-5 py-1.5 dark:text-[#EDEDEC] text-[#1b1b18] border {{ request()->routeIs('contact') ? 'border-[#19140035] hover:border-[#1915014a] dark:border-[#3E3E3A] dark:hover:border-[#62605b]' : 'border-transparent hover:border-[#19140035] dark:hover:border-[#3E3E3A]' }} rounded-sm text-sm leading-normal">
                     Contact
                 </a>
