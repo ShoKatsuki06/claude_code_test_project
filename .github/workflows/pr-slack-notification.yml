@@ -9,20 +9,53 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Send Slack notification
-        uses: rtCamp/action-slack-notify@v2
-        env:
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
-          SLACK_CHANNEL: 'claude_code_notification'
-          SLACK_COLOR: ${{ github.event.action == 'opened' && 'good' || 'warning' }}
-          SLACK_MESSAGE: |
-            ${{ github.event.action == 'opened' && '🔔 新しいプルリクエストが作成されました' || '📝 プルリクエストが更新されました' }}
-            
-            **リポジトリ:** ${{ github.repository }}
-            **作成者:** ${{ github.event.pull_request.user.login }}
-            **プルリクエスト:** ${{ github.event.pull_request.title }}
-            **ブランチ:** ${{ github.event.pull_request.head.ref }} → ${{ github.event.pull_request.base.ref }}
-            **URL:** ${{ github.event.pull_request.html_url }}
-          SLACK_TITLE: "Pull Request ${{ github.event.action == 'opened' && 'Created' || 'Updated' }}"
-          SLACK_USERNAME: 'GitHub Actions'
-          SLACK_FOOTER: 'Powered by GitHub Actions'
+      - name: Send Slack notification via webhook
+        run: |
+          # Prepare the message based on action type
+          if [ "${{ github.event.action }}" = "opened" ]; then
+            ACTION_MSG="🔔 新しいプルリクエストが作成されました"
+            COLOR="good"
+          else
+            ACTION_MSG="📝 プルリクエストが更新されました"
+            COLOR="warning"
+          fi
+          
+          # Send notification to Slack
+          curl -X POST -H 'Content-type: application/json' \
+          --data "{
+            \"channel\": \"#claude_code_notification\",
+            \"username\": \"GitHub Actions\",
+            \"icon_emoji\": \":github:\",
+            \"attachments\": [
+              {
+                \"color\": \"$COLOR\",
+                \"title\": \"$ACTION_MSG\",
+                \"title_link\": \"${{ github.event.pull_request.html_url }}\",
+                \"fields\": [
+                  {
+                    \"title\": \"リポジトリ\",
+                    \"value\": \"${{ github.repository }}\",
+                    \"short\": true
+                  },
+                  {
+                    \"title\": \"作成者\",
+                    \"value\": \"${{ github.event.pull_request.user.login }}\",
+                    \"short\": true
+                  },
+                  {
+                    \"title\": \"プルリクエスト\",
+                    \"value\": \"${{ github.event.pull_request.title }}\",
+                    \"short\": false
+                  },
+                  {
+                    \"title\": \"ブランチ\",
+                    \"value\": \"${{ github.event.pull_request.head.ref }} → ${{ github.event.pull_request.base.ref }}\",
+                    \"short\": false
+                  }
+                ],
+                \"footer\": \"GitHub Actions\",
+                \"ts\": $(date +%s)
+              }
+            ]
+          }" \
+          ${{ secrets.SLACK_WEBHOOK_URL }}
