@@ -1,0 +1,59 @@
+name: Pull Request Slack Notification
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  notify-slack:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Send Slack Notification
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              "channel": "#claude_code_notification",
+              "attachments": [
+                {
+                  "color": "${{ github.event.action == 'opened' && 'good' || 'warning' }}",
+                  "title": "${{ github.event.action == 'opened' && '🔔 新しいプルリクエストが作成されました' || '📝 プルリクエストが更新されました' }}",
+                  "title_link": "${{ github.event.pull_request.html_url }}",
+                  "fields": [
+                    {
+                      "title": "リポジトリ",
+                      "value": "${{ github.repository }}",
+                      "short": true
+                    },
+                    {
+                      "title": "作成者",
+                      "value": "${{ github.event.pull_request.user.login }}",
+                      "short": true
+                    },
+                    {
+                      "title": "プルリクエストタイトル",
+                      "value": "${{ github.event.pull_request.title }}",
+                      "short": false
+                    },
+                    {
+                      "title": "説明",
+                      "value": "${{ github.event.pull_request.body && github.event.pull_request.body || 'なし' }}",
+                      "short": false
+                    },
+                    {
+                      "title": "ブランチ",
+                      "value": "`${{ github.event.pull_request.head.ref }}` → `${{ github.event.pull_request.base.ref }}`",
+                      "short": false
+                    }
+                  ],
+                  "footer": "GitHub Actions",
+                  "footer_icon": "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png",
+                  "ts": "${{ github.event.pull_request.created_at }}"
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        if: always()
